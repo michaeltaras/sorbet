@@ -187,6 +187,7 @@ using namespace std::string_literals;
 
 %printer { yyo << $$->view(); } tIDENTIFIER
 %printer { yyo << $$->view(); } tCONSTANT
+%printer { yyo << $$->view() << ":"; } tLABEL
 
 %type <node>
   arg
@@ -3688,6 +3689,10 @@ f_opt_paren_args: f_paren_args
                 | tLABEL arg_value
                     {
                       $$ = driver.build.pair_keyword(self, $1, $2);
+                    }
+                | tLABEL error
+                    {
+                      $$ = driver.build.pair_keyword(self, $1, driver.build.error_node(self, @1.end, @2.end));
                     }
                 | tSTRING_BEG string_contents tLABEL_END arg_value
                     {
