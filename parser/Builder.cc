@@ -118,8 +118,12 @@ public:
         return std::min(off, maxOff_);
     }
 
+    core::LocOffsets locOffset(const size_t start, const size_t end) {
+        return core::LocOffsets{clamp((uint32_t)start), clamp((uint32_t)end)};
+    }
+
     core::LocOffsets tokLoc(const token *tok) {
-        return core::LocOffsets{clamp((uint32_t)tok->start()), clamp((uint32_t)tok->end())};
+        return locOffset(tok->start(), tok->end());
     }
 
     core::LocOffsets maybe_loc(unique_ptr<Node> &node) {
@@ -130,7 +134,7 @@ public:
     }
 
     core::LocOffsets tokLoc(const token *begin, const token *end) {
-        return core::LocOffsets{clamp((uint32_t)begin->start()), clamp((uint32_t)end->end())};
+        return locOffset(begin->start(), end->end());
     }
 
     core::LocOffsets collectionLoc(const token *begin, sorbet::parser::NodeVec &elts, const token *end) {
@@ -347,6 +351,13 @@ public:
         auto isKwargs = begin == nullptr && end == nullptr &&
                         absl::c_all_of(pairs, [](const auto &nd) { return isKeywordHashElement(nd.get()); });
         return make_unique<Hash>(collectionLoc(begin, pairs, end), isKwargs, std::move(pairs));
+    }
+
+    unique_ptr<Node> assoc_error(const token *label, const token *fcall) {
+        auto recv = nullptr;
+        auto method = gs_.enterNameUTF8(fcall->view());
+        auto send = make_unique<Send>(tokLoc(fcall), recv, method, tokLoc(fcall), NodeVec());
+        return pair_keyword(label, std::move(send));
     }
 
     unique_ptr<Node> attrAsgn(unique_ptr<Node> receiver, const token *dot, const token *selector, bool masgn) {
@@ -581,6 +592,22 @@ public:
             return make_unique<CSend>(loc, std::move(receiver), method, selectorLoc, std::move(args));
         } else {
             return make_unique<Send>(loc, std::move(receiver), method, selectorLoc, std::move(args));
+        }
+    }
+
+    unique_ptr<Node> call_method_error(unique_ptr<Node> receiver, const token *dot) {
+        auto loc = receiver->loc;
+        if (dot != nullptr) {
+            loc = loc.join(tokLoc(dot));
+        }
+
+        auto methodLoc = locOffset(loc.endPos(), loc.endPos());
+
+        auto method = core::Names::methodNameMissing();
+        if ((dot != nullptr) && dot->view() == "&.") {
+            return make_unique<CSend>(loc, std::move(receiver), method, methodLoc, sorbet::parser::NodeVec{});
+        } else {
+            return make_unique<Send>(loc, std::move(receiver), method, methodLoc, sorbet::parser::NodeVec{});
         }
     }
 
@@ -825,6 +852,10 @@ public:
 
     unique_ptr<Node> encodingLiteral(const token *tok) {
         return make_unique<EncodingLiteral>(tokLoc(tok));
+    }
+
+    unique_ptr<Node> error_node(size_t begin, size_t end) {
+        return make_unique<Const>(locOffset(begin, end), nullptr, core::Names::Constants::ErrorNode());
     }
 
     unique_ptr<Node> false_(const token *tok) {
@@ -1754,6 +1785,11 @@ ForeignPtr associate(SelfPtr builder, const token *begin, const node_list *pairs
     return build->toForeign(build->associate(begin, build->convertNodeList(pairs), end));
 }
 
+ForeignPtr assoc_error(SelfPtr builder, const token *label, const token *fcall) {
+    auto build = cast_builder(builder);
+    return build->toForeign(build->assoc_error(label, fcall));
+}
+
 ForeignPtr attrAsgn(SelfPtr builder, ForeignPtr receiver, const token *dot, const token *selector, bool masgn) {
     auto build = cast_builder(builder);
     return build->toForeign(build->attrAsgn(build->cast_node(receiver), dot, selector, masgn));
@@ -1813,6 +1849,11 @@ ForeignPtr call_method(SelfPtr builder, ForeignPtr receiver, const token *dot, c
     auto build = cast_builder(builder);
     return build->toForeign(
         build->call_method(build->cast_node(receiver), dot, selector, lparen, build->convertNodeList(args), rparen));
+}
+
+ForeignPtr call_method_error(SelfPtr builder, ForeignPtr receiver, const token *dot) {
+    auto build = cast_builder(builder);
+    return build->toForeign(build->call_method_error(build->cast_node(receiver), dot));
 }
 
 ForeignPtr case_(SelfPtr builder, const token *case_, ForeignPtr expr, const node_list *whenBodies,
@@ -1943,6 +1984,11 @@ ForeignPtr defSingleton(SelfPtr builder, ForeignPtr defHead, ForeignPtr args, Fo
 ForeignPtr encodingLiteral(SelfPtr builder, const token *tok) {
     auto build = cast_builder(builder);
     return build->toForeign(build->encodingLiteral(tok));
+}
+
+ForeignPtr error_node(SelfPtr builder, size_t begin, size_t end) {
+    auto build = cast_builder(builder);
+    return build->toForeign(build->error_node(begin, end));
 }
 
 ForeignPtr false_(SelfPtr builder, const token *tok) {
@@ -2461,6 +2507,7 @@ struct ruby_parser::builder Builder::interface = {
     assign,
     assignable,
     associate,
+    assoc_error,
     attrAsgn,
     backRef,
     begin,
@@ -2472,6 +2519,7 @@ struct ruby_parser::builder Builder::interface = {
     blockarg,
     callLambda,
     call_method,
+    call_method_error,
     case_,
     case_match,
     character,
@@ -2495,6 +2543,7 @@ struct ruby_parser::builder Builder::interface = {
     defsHead,
     defSingleton,
     encodingLiteral,
+    error_node,
     false_,
     find_pattern,
     fileLiteral,

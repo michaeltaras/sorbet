@@ -21,6 +21,7 @@ struct builder {
     ForeignPtr (*assign)(SelfPtr builder, ForeignPtr lhs, const token *eql, ForeignPtr rhs);
     ForeignPtr (*assignable)(SelfPtr builder, ForeignPtr node);
     ForeignPtr (*associate)(SelfPtr builder, const token *begin, const node_list *pairs, const token *end);
+    ForeignPtr (*assoc_error)(SelfPtr builder, const token *label, const token *fcall);
     ForeignPtr (*attrAsgn)(SelfPtr builder, ForeignPtr receiver, const token *dot, const token *selector, bool masgn);
     ForeignPtr (*backRef)(SelfPtr builder, const token *tok);
     ForeignPtr (*begin)(SelfPtr builder, const token *begin, ForeignPtr body, const token *end);
@@ -35,6 +36,7 @@ struct builder {
     ForeignPtr (*callLambda)(SelfPtr builder, const token *lambda);
     ForeignPtr (*call_method)(SelfPtr builder, ForeignPtr receiver, const token *dot, const token *selector,
                               const token *lparen, const node_list *args, const token *rparen);
+    ForeignPtr (*call_method_error)(SelfPtr builder, ForeignPtr receiver, const token *dot);
     ForeignPtr (*case_)(SelfPtr builder, const token *case_, ForeignPtr expr, const node_list *whenBodies,
                         const token *elseTok, ForeignPtr elseBody, const token *end);
     ForeignPtr (*case_match)(SelfPtr builder, const token *case_, ForeignPtr expr, const node_list *inBodies,
@@ -67,6 +69,7 @@ struct builder {
     ForeignPtr (*defsHead)(SelfPtr builder, const token *def, ForeignPtr definee, const token *dot, const token *name);
     ForeignPtr (*defSingleton)(SelfPtr builder, ForeignPtr defHead, ForeignPtr args, ForeignPtr body, const token *end);
     ForeignPtr (*encodingLiteral)(SelfPtr builder, const token *tok);
+    ForeignPtr (*error_node)(SelfPtr builder, size_t begin, size_t end);
     ForeignPtr (*false_)(SelfPtr builder, const token *tok);
     ForeignPtr (*find_pattern)(SelfPtr builder, const token *lbrack_t, const node_list *elements,
                                const token *rbrack_t);

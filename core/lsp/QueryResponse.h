@@ -11,15 +11,18 @@ class TypeConstraint;
 class SendResponse final {
 public:
     SendResponse(core::Loc termLoc, std::shared_ptr<core::DispatchResult> dispatchResult, core::NameRef callerSideName,
-                 bool isPrivateOk, core::MethodRef enclosingMethod, core::Loc receiverLoc, size_t totalArgs)
+                 bool isPrivateOk, core::MethodRef enclosingMethod, core::Loc receiverLoc, core::Loc funLoc,
+                 size_t totalArgs)
         : dispatchResult(std::move(dispatchResult)), callerSideName(callerSideName), termLoc(termLoc),
-          isPrivateOk(isPrivateOk), enclosingMethod(enclosingMethod), receiverLoc(receiverLoc), totalArgs(totalArgs){};
+          isPrivateOk(isPrivateOk), enclosingMethod(enclosingMethod), receiverLoc(receiverLoc), funLoc(funLoc),
+          totalArgs(totalArgs){};
     const std::shared_ptr<core::DispatchResult> dispatchResult;
     const core::NameRef callerSideName;
     const core::Loc termLoc;
     const bool isPrivateOk;
     const core::MethodRef enclosingMethod;
     const core::Loc receiverLoc;
+    const core::Loc funLoc;
     const size_t totalArgs;
 
     const std::optional<core::Loc> getMethodNameLoc(const core::GlobalState &gs) const;
@@ -47,9 +50,9 @@ class ConstantResponse final {
 public:
     using Scopes = InlinedVector<core::SymbolRef, 1>;
     ConstantResponse(core::SymbolRef symbol, core::SymbolRef symbolBeforeDealias, core::Loc termLoc, Scopes scopes,
-                     core::NameRef name, core::TypeAndOrigins retType)
+                     core::NameRef name, core::TypeAndOrigins retType, core::MethodRef enclosingMethod)
         : symbol(symbol), symbolBeforeDealias(symbolBeforeDealias), termLoc(termLoc), scopes(scopes), name(name),
-          retType(std::move(retType)){};
+          retType(std::move(retType)), enclosingMethod(enclosingMethod){};
     const core::SymbolRef symbol;
     // You probably don't want this. Almost all of Sorbet's type system operates on dealiased
     // symbols transparently (e.g., for a constant like `X = Integer`, Sorbet reports that `''` is
@@ -63,6 +66,7 @@ public:
     const Scopes scopes;
     const core::NameRef name;
     const core::TypeAndOrigins retType;
+    const core::MethodRef enclosingMethod;
 };
 
 class FieldResponse final {
