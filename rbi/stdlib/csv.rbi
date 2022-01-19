@@ -551,7 +551,7 @@ class CSV < Object
         path: String,
         options: T::Hash[Symbol, T.untyped],
     )
-    .returns(T::Array[T::Array[T.nilable(String)]])
+    .returns(T.any(CSV::Row, T::Array[T::Array[T.nilable(String)]]))
   end
   def self.read(path, options=T.unsafe(nil)); end
 
