@@ -146,6 +146,8 @@ module T::Props
           end
         when T::Types::Enum
           generate(T::Utils.lift_enum(type), mode, varname)
+        when T::Types::TEnum
+          handle_custom_type(varname, type, mode)
         else
           "T::Props::Utils.deep_clone_object(#{varname})"
         end

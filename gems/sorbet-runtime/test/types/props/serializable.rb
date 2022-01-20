@@ -931,6 +931,10 @@ class Opus::Types::Test::Props::SerializableTest < Critic::Unit::UnitTest
     prop :deprecated_enum, T.all(MyEnum, T.deprecated_enum(MyEnum.values))
   end
 
+  class EnumStructWithValueProp < T::Struct
+    prop :enum, MyEnum::BAR
+  end
+
   describe 'enum' do
     it 'round trips' do
       s = EnumStruct.new(enum: MyEnum::FOO, deprecated_enum_of_enums: MyEnum::BAR)
@@ -951,6 +955,13 @@ class Opus::Types::Test::Props::SerializableTest < Critic::Unit::UnitTest
 
       roundtripped = RedundantEnumStruct.from_hash(serialized)
       assert_equal(MyEnum::FOO, roundtripped.deprecated_enum)
+    end
+
+    it 'serialzes enum class props and enum value props the same way' do
+      assert_equal(
+        EnumStruct.new(enum: MyEnum::BAR).serialize,
+        EnumStructWithValueProp.new(enum: MyEnum::BAR).serialize
+      )
     end
   end
 
